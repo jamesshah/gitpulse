@@ -54,13 +54,20 @@ class GitPulsePanel {
 				switch (message.command) {
 					case "getCommits":
 						try {
-							const commits = await this._getCommits(
+							// commits from current user
+							const userCommits = await this._getCommits(
+								message.timeframe,
+								true
+							);
+							// commits from other users
+							const otherCommits = await this._getCommits(
 								message.timeframe
 							);
 							if (this._panel) {
 								await this._panel.webview.postMessage({
 									command: "updateCommits",
-									commits: commits,
+									userCommits: userCommits,
+									otherCommits: otherCommits,
 								});
 							}
 						} catch (error) {
@@ -101,7 +108,8 @@ class GitPulsePanel {
 	}
 
 	private async _getCommits(
-		timeframe: "day" | "week" | "month"
+		timeframe: "day" | "week" | "month",
+		forCurrentUser: boolean = false
 	): Promise<CommitData[]> {
 		const workspace = vscode.workspace.workspaceFolders?.[0];
 		if (!workspace) {
@@ -111,14 +119,6 @@ class GitPulsePanel {
 		console.log("Getting commits for", timeframe);
 
 		try {
-			// Get current user's email from git config
-			const { stdout: userEmail } = await execAsync(
-				"git config user.email",
-				{
-					cwd: workspace.uri.fsPath,
-				}
-			);
-
 			// Construct git log command based on timeframe
 			let since = "";
 			switch (timeframe) {
@@ -133,7 +133,19 @@ class GitPulsePanel {
 					break;
 			}
 
-			const command = `git log --all --format="%H|%ad|%s|%ae" --date=iso ${since} --author="${userEmail.trim()}"`;
+			// Get current user's email from git config
+			const { stdout: userEmail } = await execAsync(
+				"git config user.email",
+				{
+					cwd: workspace.uri.fsPath,
+				}
+			);
+			let command = "";
+			if (forCurrentUser) {
+				command = `git log --all --format="%H|%ad|%s|%ae" --date=iso ${since} --author="${userEmail.trim()}"`;
+			} else {
+				command = `git log --all --format="%H|%ad|%s|%ae" --date=iso ${since} | grep -v "${userEmail.trim()}"`;
+			}
 
 			console.log("Command:", command);
 
@@ -317,24 +329,31 @@ class GitPulsePanel {
                         return grouped;
                     }
 
-                    function initChart(commits, timeframe) {
+                    function initChart(userCommits, otherCommits, timeframe) {
                         const ctx = document.getElementById('commitsChart').getContext('2d');
                         if (myChart) {
                             myChart.destroy();
                         }
                         
-                        const grouped = groupCommitsByTimeframe(commits, timeframe);
-                        const labels = Object.keys(grouped);
-                        const data = labels.map(label => grouped[label].length);
+                        const userCommitsGrouped = groupCommitsByTimeframe(userCommits, timeframe);
+						const otherCommitsGrouped = groupCommitsByTimeframe(otherCommits, timeframe);
+                        const labels = Object.keys(userCommitsGrouped);
+                        const userCommitsData = labels.map(label => userCommitsGrouped[label].length);
+						const otherCommitsData = labels.map(label => otherCommitsGrouped[label].length);
 
                         myChart = new Chart(ctx, {
                             type: 'bar',
                             data: {
                                 labels: labels,
                                 datasets: [{
-                                    label: 'Number of Commits',
-                                    data: data,
+                                    label: 'Your commits',
+                                    data: userCommitsData,
                                     backgroundColor: 'rgba(54, 162, 235, 0.5)'
+                                },
+								{
+                                    label: "Other's commits",
+                                    data: otherCommitsData,
+                                    backgroundColor: 'rgba(255, 99, 132, 0.2)'
                                 }]
                             },
                             options: {
@@ -390,8 +409,9 @@ class GitPulsePanel {
                         const message = event.data;
                         switch (message.command) {
                             case 'updateCommits':
-                                if (message.commits) {
-                                    initChart(message.commits, currentTimeframe);
+                                if (message.userCommits) {
+									console.log("message", message);
+                                    initChart(message.userCommits, message.otherCommits, currentTimeframe);
                                 }
                                 break;
                         }
