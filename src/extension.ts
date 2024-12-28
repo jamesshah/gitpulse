@@ -14,6 +14,12 @@ interface CommitData {
 	author: string;
 }
 
+interface FileTypeStats {
+	extension: string;
+	lines: number;
+	pctChange: number;
+}
+
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
@@ -63,11 +69,23 @@ class GitPulsePanel {
 							const otherCommits = await this._getCommits(
 								message.timeframe
 							);
+
+							const userStats = await this._getFileTypeStats(
+								message.timeframe,
+								true
+							);
+
+							const otherStats = await this._getFileTypeStats(
+								message.timeframe
+							);
+
 							if (this._panel) {
 								await this._panel.webview.postMessage({
 									command: "updateCommits",
-									userCommits: userCommits,
-									otherCommits: otherCommits,
+									userCommits,
+									otherCommits,
+									userStats,
+									otherStats,
 								});
 							}
 						} catch (error) {
@@ -172,6 +190,142 @@ class GitPulsePanel {
 		}
 	}
 
+	private async _getFileTypeStats(
+		timeframe: "day" | "week" | "month",
+		forCurrentUser: boolean = false
+	): Promise<FileTypeStats[]> {
+		const workspace = vscode.workspace.workspaceFolders?.[0];
+		if (!workspace) {
+			return [];
+		}
+
+		console.log("Getting filetype percentage stats for", timeframe);
+
+		try {
+			// Construct git log command based on timeframe
+			let since = "";
+			switch (timeframe) {
+				case "day":
+					since = '--since="1 day ago"';
+					break;
+				case "week":
+					since = '--since="1 week ago"';
+					break;
+				case "month":
+					since = '--since="1 month ago"';
+					break;
+			}
+
+			// Get current user's email from git config
+			const { stdout: userEmail } = await execAsync(
+				"git config user.email",
+				{
+					cwd: workspace.uri.fsPath,
+				}
+			);
+
+			const authorFilter = forCurrentUser
+				? `--author="${userEmail.trim()}"`
+				: ` | grep -v "${userEmail.trim()}"`;
+
+			const command = `git log --all ${since} --numstat --format="" ${authorFilter}`;
+
+			console.log("Command:", command);
+
+			// Get commits from all branches for current user
+			const { stdout } = await execAsync(command, {
+				cwd: workspace.uri.fsPath,
+			});
+
+			// Process the output
+			const extensionStats = new Map<string, number>();
+			let totalLines = 0;
+
+			stdout
+				.split("\n")
+				.filter((line) => line.trim())
+				.forEach((line) => {
+					const [additions, deletions, filepath] = line.split("\t");
+
+					// Skip binary files or renamed files
+					if (additions === "-" || deletions === "-" || !filepath) {
+						return;
+					}
+
+					// Get file extension and normalize it
+					const extension =
+						filepath.split(".").pop()?.toLowerCase() ||
+						"no-extension";
+					const changes = parseInt(additions) + parseInt(deletions);
+
+					// Update stats
+					extensionStats.set(
+						extension,
+						(extensionStats.get(extension) || 0) + changes
+					);
+					totalLines += changes;
+				});
+
+			// Convert to array and sort by number of lines
+			let results: FileTypeStats[] = Array.from(extensionStats.entries())
+				.map(([ext, lines]) => ({
+					extension: ext,
+					lines: lines,
+					pctChange: parseFloat(
+						((lines / totalLines) * 100).toFixed(2)
+					),
+				}))
+				.sort((a, b) => b.lines - a.lines);
+
+			// Take top 6 extensions and aggregate the rest
+			if (results.length > 6) {
+				const topSix = results.slice(0, 6);
+				const others = results.slice(6);
+
+				// Calculate total lines and percentage for "other"
+				const otherLines = others.reduce(
+					(sum, item) => sum + item.lines,
+					0
+				);
+				const otherPercentage = parseFloat(
+					((otherLines / totalLines) * 100).toFixed(2)
+				);
+
+				// Add "other" category
+				results = [
+					...topSix,
+					{
+						extension: "other",
+						lines: otherLines,
+						pctChange: otherPercentage,
+					},
+				];
+			}
+
+			// Recalculate percentages to ensure they sum to 100
+			const totalPercentage = results.reduce(
+				(sum, item) => sum + item.pctChange,
+				0
+			);
+			if (totalPercentage !== 100) {
+				const adjustmentFactor = 100 / totalPercentage;
+				results = results.map((item) => ({
+					...item,
+					pctChange: parseFloat(
+						(item.pctChange * adjustmentFactor).toFixed(2)
+					),
+				}));
+			}
+
+			console.log("Results:", results);
+
+			return results;
+		} catch (error) {
+			console.error("Error analyzing file types:", error);
+			return [];
+		}
+	}
+
 	private updateContent() {
 		if (!this._panel) {
 			return;
@@ -201,22 +355,18 @@ class GitPulsePanel {
             <title>GitPulse Dashboard</title>
             <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
             <style>
-                body { padding: 20px; font-family: Arial, sans-serif; }
+			    :root {
+					color-scheme: light dark;
+				}
+                body { 
+					padding: 20px; 
+					font-family: Arial, sans-serif; 
+					font-family: var(--vscode-font-family);
+					color: var(--vscode-editor-foreground);
+					background-color: var(--vscode-editor-background);
+				}
                 .controls { margin-bottom: 20px; }
                 .chart-container { height: 400px; margin-bottom: 20px; }
-                .commits-list { margin-top: 20px; }
-                .commit-item { 
-                    padding: 10px; 
-                    border-bottom: 1px solid #ccc;
-                    display: flex;
-                    justify-content: space-between;
-                }
-                .group-header {
-                    background-color: #f5f5f5;
-                    padding: 10px;
-                    margin-top: 20px;
-                    font-weight: bold;
-                }
             </style>
         </head>
         <body>
@@ -229,13 +379,67 @@ class GitPulsePanel {
             </div>
             <div class="chart-container">
                 <canvas id="commitsChart"></canvas>
+			</div>
+			<div class="chart-container">
+				<canvas id="contributionsByFileTypesChart"></canvas>
             </div>
 
             <script>
                 (function() {
                     const vscode = acquireVsCodeApi();
                     let myChart = null;
+					let myFileTypeChart = null;
                     let currentTimeframe = 'week';
+
+					const computedStyle = window.getComputedStyle(document.body);
+					const foregroundColor = computedStyle.getPropertyValue('--vscode-editor-foreground');
+					const gridColor = computedStyle.getPropertyValue('--vscode-panel-border');
+
+					// Common options for both charts
+					const commonChartOptions = {
+						plugins: {
+							legend: {
+								labels: {
+									color: foregroundColor
+								}
+							}
+						},
+						scales: {
+							r: {  // For radar chart
+								grid: {
+									color: gridColor
+								},
+								ticks: {
+									color: foregroundColor,
+									backdropColor: 'rgba(0, 0, 0, 0.0)'
+								},
+								angleLines: {
+									color: gridColor
+								},
+								pointLabels: {
+									color: foregroundColor,
+								}
+							},
+							x: {  // For bar chart
+								grid: {
+									color: gridColor
+								},
+								ticks: {
+									color: foregroundColor
+								}
+							},
+							y: {  // For bar chart
+								beginAtZero: true,
+								grid: {
+									color: gridColor
+								},
+								ticks: {
+									color: foregroundColor,
+									stepSize: 1
+								}
+							}
+						}
+					};
 
                     function getWeekNumber(date) {
                         const firstDayOfYear = new Date(date.getFullYear(), 0, 1);
@@ -357,43 +561,99 @@ class GitPulsePanel {
                                 }]
                             },
                             options: {
+								...commonChartOptions,
                                 responsive: true,
                                 maintainAspectRatio: false,
-                                scales: {
-                                    y: {
-                                        beginAtZero: true,
-                                        ticks: {
-                                            stepSize: 1
-                                        }
-                                    }
-                                }
                             }
                         });
                     }
 
-                    function updateCommitsList(commits, timeframe) {
-                        const list = document.getElementById('commitsList');
-                        const grouped = groupCommitsByTimeframe(commits, timeframe);
-                        
-                        const html = Object.entries(grouped).map(([group, groupCommits]) => {
-                            const commitsHtml = groupCommits.map(commit => 
-                                '<div class="commit-item">' +
-                                    '<div>' +
-                                        '<strong>' + commit.message + '</strong>' +
-                                        '<div>Branch: ' + commit.branch + '</div>' +
-                                    '</div>' +
-                                    '<div>' + new Date(commit.date).toLocaleString() + '</div>' +
-                                '</div>'
-                            ).join('');
-                            
-                            return \`
-                                <div class="group-header">\${group} (\${groupCommits.length} commits)</div>
-                                \${commitsHtml}
-                            \`;
-                        }).join('');
-                        
-                        list.innerHTML = html;
-                    }
+					function normalizeForRadarChart(fileStats){
+						// Method 1: Min-Max scaling to range 1-10
+						const minValue = Math.min(...fileStats.map(stat => stat.pctChange));
+						const maxValue = Math.max(...fileStats.map(stat => stat.pctChange));
+
+						console.log(minValue, maxValue);
+						
+						/* Alternative Method: Min-Max scaling
+						return fileStats.map(stat => ({
+							label: stat.extension,
+							// Scale to 1-10 range
+							value: 1 + ((stat.pctChange - minValue) / (maxValue - minValue)) * 9,
+							originalPercentage: stat.pctChange
+						}));
+						*/
+
+						/* Alternative Method: Logarithmic transformation
+						return fileStats.map(stat => ({
+							label: stat.extension,
+							value: Math.log10(stat.pctChange + 1) * 5,  // *5 to amplify the differences
+							originalPercentage: stat.pctChange
+						}));
+						*/
+
+						// Alternative Method: Square root transformation
+						return fileStats.map(stat => ({
+							label: stat.extension,
+							value: Math.sqrt(stat.pctChange) * 3,  // *3 to amplify the differences
+							originalPercentage: stat.pctChange
+						}));
+					}
+
+
+					function initContributionsByFileTypesChart(userStats, otherStats, timeframe) { 
+						const ctx = document.getElementById('contributionsByFileTypesChart').getContext('2d');
+						if (myFileTypeChart) {
+							myFileTypeChart.destroy();
+						}
+
+						const labels = userStats.length > 0 ?  userStats.map(stat => stat.extension) : otherStats.map(stat => stat.extension);
+						const userStatsData = normalizeForRadarChart(userStats).map(stat => stat.value);
+						const otherStatsData = normalizeForRadarChart(otherStats).map(stat => stat.value);
+
+						console.log("userStatsData", userStatsData);
+						console.log("otherStatsData", otherStatsData);
+						console.log("labels", labels);
+
+						myFileTypeChart = new Chart(ctx, {
+							type: 'radar',
+							data: {
+								labels: labels,
+								datasets: [
+									{
+										label: 'Your commits',
+										data: userStatsData,
+										fill: true,
+										backgroundColor: 'rgba(54, 162, 235, 0.5)',
+										borderColor: 'rgb(54, 162, 235)',
+										pointBackgroundColor: 'rgb(54, 162, 235)',
+										pointBorderColor: '#fff',
+										pointHoverBackgroundColor: '#fff',
+										pointHoverBorderColor: 'rgb(54, 162, 235)'
+									},
+									{
+										label: "Other's commits",
+										data: otherStatsData,
+										fill: true,
+										backgroundColor: 'rgba(255, 99, 132, 0.2)',
+										borderColor: 'rgb(255, 99, 132)',
+										pointBackgroundColor: 'rgb(255, 99, 132)',
+										pointBorderColor: '#fff',
+										pointHoverBackgroundColor: '#fff',
+										pointHoverBorderColor: 'rgb(255, 99, 132)'
+									}
+								]
+							},
+							options: {
+								...commonChartOptions,
+                                elements: {
+									line: {
+										borderWidth: 3
+									}
+								},
+                            }
+						});
+					}
 
                     // Handle timeframe changes
                     document.getElementById('timeframe').addEventListener('change', (e) => {
@@ -409,9 +669,12 @@ class GitPulsePanel {
                         const message = event.data;
                         switch (message.command) {
                             case 'updateCommits':
+								console.log("updateCommits message", message);
                                 if (message.userCommits) {
-									console.log("message", message);
                                     initChart(message.userCommits, message.otherCommits, currentTimeframe);
+                                }
+								if (message.userStats) {
+                                    initContributionsByFileTypesChart(message.userStats, message.otherStats, currentTimeframe);
                                 }
                                 break;
                         }
