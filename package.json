@@ -1,23 +1,43 @@
 {
 	"name": "gitpulse",
 	"displayName": "GitPulse",
-	"description": "Get productivity metrics from git logs",
+	"description": "Git logs visualized for better insights",
 	"version": "0.0.1",
+	"license": "MIT",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/jamesshah/gitpulse.git"
+	},
 	"engines": {
-		"vscode": "^1.96.0"
+		"vscode": "^1.60.0"
 	},
 	"categories": [
-		"Other"
+		"Other",
+		"Visualization"
 	],
 	"activationEvents": [],
 	"main": "./dist/extension.js",
+	"publisher": "jamesshah",
+	"icon": "./assets/icon.png",
+	"pricing": "Free",
 	"contributes": {
 		"commands": [
 			{
 				"command": "gitpulse.showDashboard",
 				"title": "Show GitPulse Dashboard"
 			}
-		]
+		],
+		"configuration": {
+			"title": "GitPulse",
+			"type": "object",
+			"properties": {
+				"gitpulse.dashboard.showOthersContributions": {
+					"type": "boolean",
+					"default": false,
+					"description": "Compare contributions with other contributors"
+				}
+			}
+		}
 	},
 	"scripts": {
 		"vscode:prepublish": "npm run package",
@@ -34,16 +54,16 @@
 		"test": "vscode-test"
 	},
 	"devDependencies": {
-		"@types/vscode": "^1.96.0",
 		"@types/mocha": "^10.0.10",
 		"@types/node": "20.x",
+		"@types/vscode": "^1.96.0",
 		"@typescript-eslint/eslint-plugin": "^8.17.0",
 		"@typescript-eslint/parser": "^8.17.0",
-		"eslint": "^9.16.0",
-		"esbuild": "^0.24.0",
-		"npm-run-all": "^4.1.5",
-		"typescript": "^5.7.2",
 		"@vscode/test-cli": "^0.0.10",
-		"@vscode/test-electron": "^2.4.1"
+		"@vscode/test-electron": "^2.4.1",
+		"esbuild": "^0.24.0",
+		"eslint": "^9.16.0",
+		"npm-run-all": "^4.1.5",
+		"typescript": "^5.7.2"
 	}
 }

@@ -1,0 +1,21 @@
+:root {
+	color-scheme: light dark;
+}
+body {
+	padding: 20px;
+	font-family: Arial, sans-serif;
+	font-family: var(--vscode-font-family);
+	color: var(--vscode-editor-foreground);
+	background-color: var(--vscode-editor-background);
+}
+.controls {
+	margin-bottom: 20px;
+}
+.chart-container {
+	height: 400px;
+	margin-bottom: 20px;
+}
+
+canvas {
+	color: var(--vscode-editor-foreground);
+}

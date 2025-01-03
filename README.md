@@ -1,71 +1,63 @@
-# gitpulse README
+# GitPulse
 
-This is the README for your extension "gitpulse". After writing up a brief description, we recommend including the following sections.
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
+
+GitPulse is a VS Code extension that provides insightful visualizations of your git repository's activity. It helps you understand your team's contribution patterns and code changes through interactive charts and metrics.
 
 ## Features
 
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
+### 1. Commit Activity Dashboard
 
-For example if there is an image subfolder under your extension project workspace:
+Track commit patterns with an interactive dashboard showing:
 
-\!\[feature X\]\(images/feature-x.png\)
+-   Your commits vs. team commits over time
+-   Daily, weekly, and monthly views
+-   Interactive bar charts showing commit distribution
 
-> Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
+### 2. File Type Analysis
+
+Understand where changes are happening in your codebase:
+
+-   Radar chart showing distribution of changes across different file types
+-   Percentage breakdown of contributions by file extension
+-   Automatically aggregates less common file types for clarity
+
+### 3. Theme Integration
+
+-   Seamlessly adapts to your VS Code theme
+-   Supports both light and dark modes
+-   Maintains consistent visual experience
+
+## Getting Started
+
+1. Install the extension from the VS Code Marketplace
+2. Open a folder containing a Git repository
+3. Access GitPulse by:
+    - Using the command palette (`Ctrl+Shift+P` or `Cmd+Shift+P`) and searching for "Show GitPulse Dashboard"
+    - Clicking the GitPulse icon in the activity bar (Coming soon!)
 
 ## Requirements
 
-If you have any requirements or dependencies, add a section describing those and how to install and configure them.
+-   VS Code version 1.60.0 or higher
+-   Git installed and available in path
+-   Active Git repository in workspace
 
 ## Extension Settings
 
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
-
-For example:
-
 This extension contributes the following settings:
 
-* `myExtension.enable`: Enable/disable this extension.
-* `myExtension.thing`: Set to `blah` to do something.
-
-## Known Issues
-
-Calling out known issues can help limit users opening duplicate issues against your extension.
+-   `gitpulse.dashboard.showOthersContributions`: Compare your contributions with other contributors of the repository (default: False)
 
 ## Release Notes
 
-Users appreciate release notes as you update your extension.
+See [Changelog](./CHANGELOG.md).
 
-### 1.0.0
+## License
 
-Initial release of ...
+This project is licensed under the MIT License - see the [LICENSE](./LICENSE) file for details.
 
-### 1.0.1
+## Credits
 
-Fixed issue #.
+GitPulse uses the following open-source packages:
 
-### 1.1.0
-
-Added features X, Y, and Z.
-
----
-
-## Following extension guidelines
-
-Ensure that you've read through the extensions guidelines and follow the best practices for creating your extension.
-
-* [Extension Guidelines](https://code.visualstudio.com/api/references/extension-guidelines)
-
-## Working with Markdown
-
-You can author your README using Visual Studio Code. Here are some useful editor keyboard shortcuts:
-
-* Split the editor (`Cmd+\` on macOS or `Ctrl+\` on Windows and Linux).
-* Toggle preview (`Shift+Cmd+V` on macOS or `Shift+Ctrl+V` on Windows and Linux).
-* Press `Ctrl+Space` (Windows, Linux, macOS) to see a list of Markdown snippets.
-
-## For more information
-
-* [Visual Studio Code's Markdown Support](http://code.visualstudio.com/docs/languages/markdown)
-* [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)
-
-**Enjoy!**
+-   [Chart.js](https://chartjs.org) for visualization
