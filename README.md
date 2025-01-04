@@ -36,6 +36,10 @@ Understand where changes are happening in your codebase:
     - Using the command palette (`Ctrl+Shift+P` or `Cmd+Shift+P`) and searching for "Show GitPulse Dashboard"
     - Clicking the GitPulse icon in the activity bar (Coming soon!)
 
+## Usage
+
+![](./assets/demo.gif)
+
 ## Requirements
 
 -   VS Code version 1.60.0 or higher
