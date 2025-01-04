@@ -45,20 +45,6 @@ function script() {
 		return Math.ceil((pastDays + firstDayOfYear.getDay() + 1) / 7);
 	}
 
-	// function formatDateLabel(date, timeframe) {
-	// 	if (timeframe === "day") {
-	// 		return date.toLocaleTimeString([], {
-	// 			hour: "2-digit",
-	// 			minute: "2-digit",
-	// 		});
-	// 	} else if (timeframe === "week") {
-	// 		return date.toLocaleDateString([], { weekday: "short" });
-	// 	} else {
-	// 		const weekNum = getWeekNumber(date);
-	// 		return `Week ${weekNum}`;
-	// 	}
-	// }
-
 	// Helper function to get all days of week
 	function getAllDaysOfWeek() {
 		return ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -123,8 +109,6 @@ function script() {
 			grouped[period] = [];
 		});
 
-		// console.log(allPeriods);
-
 		// Group the actual commits
 		commits.forEach((commit) => {
 			const date = new Date(commit.date);
@@ -140,8 +124,9 @@ function script() {
 					.toLocaleTimeString([], {
 						hour: "2-digit",
 						minute: "2-digit",
+						hour12: false,
 					})
-					.replace(/:\d\d /, ":00 "); // Round to hour
+					.replace(/:\d\d$/, ":00"); // Round to hour
 			}
 
 			if (grouped.hasOwnProperty(key)) {
@@ -149,22 +134,18 @@ function script() {
 			}
 		});
 
-		// console.log("grouped", grouped);
-
 		return grouped;
 	}
 
 	function initChart(userCommits, otherCommits, timeframe) {
 		const ctx = document.getElementById("commitsChart").getContext("2d");
 
-		// console.log("userCommits", userCommits);
-		// console.log("otherCommits", otherCommits);
 		const userCommitsGrouped = groupCommitsByTimeframe(
 			userCommits,
 			timeframe
 		);
 
-		const labels = Object.keys(userCommitsGrouped);
+		let labels = Object.keys(userCommitsGrouped);
 		const userCommitsData = labels.map(
 			(label) => userCommitsGrouped[label].length
 		);
@@ -182,6 +163,14 @@ function script() {
 				otherCommits,
 				timeframe
 			);
+
+			// Add other's commits to labels
+			Object.keys(otherCommitsGrouped).forEach((key) => {
+				if (!labels.includes(key)) {
+					labels.push(key);
+				}
+			});
+
 			const otherCommitsData = labels.map(
 				(label) => otherCommitsGrouped[label].length
 			);
@@ -194,73 +183,43 @@ function script() {
 		}
 
 		if (myChart) {
-			// Update labels
-			while (myChart.data.labels.length > 0) {
-				myChart.data.labels.pop();
-			}
-
-			myChart.data.datasets.forEach((dataset) => {
-				while (dataset.data.length > 0) {
-					dataset.data.pop();
-				}
-			});
-
-			myChart.data.labels.push(...labels);
-
-			myChart.data.datasets
-				.find((dataset) => dataset.label === "Your commits")
-				.data.push(...userCommitsData);
-
-			if (otherCommits) {
-				myChart.data.datasets
-					.find((dataset) => dataset.label === "Other's commits")
-					.data.push(...datasets[1].data);
-
-				myChart.data.datasets.find(
-					(dataset) => dataset.label === "Other's commits"
-				);
-			}
-
-			console.log(myChart.data.datasets);
-
-			myChart.update();
-		} else {
-			myChart = new Chart(ctx, {
-				type: "bar",
-				data: {
-					labels: labels,
-					datasets: datasets,
-				},
-				plugins: [emptyChartPlugin],
-				options: {
-					...commonChartOptions,
-					responsive: true,
-					maintainAspectRatio: false,
-					scales: {
-						x: {
-							// For bar chart
-							grid: {
-								color: gridColor,
-							},
-							ticks: {
-								color: foregroundColor,
-							},
+			myChart.destroy();
+		}
+		myChart = new Chart(ctx, {
+			type: "bar",
+			data: {
+				labels: labels,
+				datasets: datasets,
+			},
+			plugins: [emptyChartPlugin],
+			options: {
+				...commonChartOptions,
+				responsive: true,
+				maintainAspectRatio: false,
+				scales: {
+					x: {
+						// For bar chart
+						grid: {
+							color: gridColor,
 						},
-						y: {
-							// For bar chart
-							beginAtZero: true,
-							grid: {
-								color: gridColor,
-							},
-							ticks: {
-								color: foregroundColor,
-								stepSize: 1,
-							},
+						ticks: {
+							color: foregroundColor,
+						},
+					},
+					y: {
+						// For bar chart
+						beginAtZero: true,
+						grid: {
+							color: gridColor,
+						},
+						ticks: {
+							color: foregroundColor,
+							stepSize: 1,
 						},
 					},
 				},
-			});
-		}
+			},
+		});
 	}
 
 	function normalizeForRadarChart(fileStats) {
@@ -305,14 +264,12 @@ function script() {
 			myFileTypeChart.destroy();
 		}
 
-		let labels = normalizeForRadarChart(userStats).map(
-			(stat) => stat.extension
-		);
-		const userStatsData = userStats.map((stat) => stat.value);
+		let labels = userStats.map((stat) => stat.extension);
+		const userStatsData = userStats.map((stat) => stat.pctChange);
 
 		const datasets = [
 			{
-				label: "Your commits",
+				label: "Your contribution in %",
 				data: userStatsData,
 				fill: true,
 				backgroundColor: "rgba(54, 162, 235, 0.5)",
@@ -325,9 +282,7 @@ function script() {
 		];
 
 		if (otherStats) {
-			const otherStatsData = normalizeForRadarChart(otherStats).map(
-				(stat) => stat.value
-			);
+			const otherStatsData = otherStats.map((stat) => stat.pctChange);
 
 			otherStats
 				.map((stat) => stat.extension)
@@ -335,7 +290,7 @@ function script() {
 				.forEach((ext) => labels.push(ext));
 
 			datasets.push({
-				label: "Other's commits",
+				label: "Other's contribution in %",
 				data: otherStatsData,
 				fill: true,
 				backgroundColor: "rgba(255, 99, 132, 0.2)",

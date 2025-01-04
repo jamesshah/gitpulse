@@ -374,7 +374,7 @@ export class GitPulsePanel {
                 <h1 id="label-header">Total Commits</h1>
                 <canvas id="commitsChart"></canvas>
 
-                <h1>Commits by file types </h1>
+                <h1> Contribution % by file types </h1>
 				<canvas id="contributionsByFileTypesChart"></canvas>
 			</div>
 
