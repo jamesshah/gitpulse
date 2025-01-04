@@ -38,7 +38,7 @@ Understand where changes are happening in your codebase:
 
 ## Usage
 
-![](./assets/demo.gif)
+![](https://raw.githubusercontent.com/jamesshah/gitpulse/refs/heads/main/assets/demo.gif?token=GHSAT0AAAAAACZ5PX5TS5FVE2YEMQTVB2EMZ3YTJ6Q)
 
 ## Requirements
 
