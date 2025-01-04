@@ -94,7 +94,7 @@ export class GitPulsePanel {
 				enableScripts: true,
 				retainContextWhenHidden: true,
 				localResourceRoots: [
-					vscode.Uri.joinPath(extensionUri, "src", "webview"),
+					vscode.Uri.joinPath(extensionUri, "webview"),
 				],
 			}
 		);
@@ -328,7 +328,6 @@ export class GitPulsePanel {
 	private _getWebviewContent(webview: vscode.Webview) {
 		const stylesPath = vscode.Uri.joinPath(
 			this._extensionUri,
-			"src",
 			"webview",
 			"style.css"
 		);
@@ -336,13 +335,11 @@ export class GitPulsePanel {
 
 		const scriptPath = vscode.Uri.joinPath(
 			this._extensionUri,
-			"src",
 			"webview",
 			"script.js"
 		);
 		const chartjsPath = vscode.Uri.joinPath(
 			this._extensionUri,
-			"src",
 			"webview",
 			"chart.min.js"
 		);
