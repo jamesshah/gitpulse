@@ -2,7 +2,7 @@
 	"name": "gitpulse",
 	"displayName": "GitPulse",
 	"description": "Git logs visualized for better insights",
-	"version": "0.0.1",
+	"version": "1.0.0",
 	"license": "MIT",
 	"repository": {
 		"type": "git",
