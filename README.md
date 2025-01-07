@@ -36,9 +36,11 @@ Understand where changes are happening in your codebase:
     - Using the command palette (`Ctrl+Shift+P` or `Cmd+Shift+P`) and searching for "Show GitPulse Dashboard"
     - Clicking the GitPulse icon in the activity bar (Coming soon!)
 
-## Usage
+## Screenshots
 
-![](https://raw.githubusercontent.com/jamesshah/gitpulse/refs/heads/main/assets/demo.gif?token=GHSAT0AAAAAACZ5PX5TS5FVE2YEMQTVB2EMZ3YTJ6Q)
+![](https://raw.githubusercontent.com/jamesshah/static-assets/refs/heads/main/gitpulse-demo.gif)
+![](https://raw.githubusercontent.com/jamesshah/static-assets/refs/heads/main/gitpulse-chart.png)
+![](https://raw.githubusercontent.com/jamesshah/static-assets/refs/heads/main/gitpulse-chart2.png)
 
 ## Requirements
 
