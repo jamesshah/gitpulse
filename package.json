@@ -2,7 +2,7 @@
 	"name": "gitpulse",
 	"displayName": "GitPulse",
 	"description": "Git logs visualized for better insights",
-	"version": "1.0.1",
+	"version": "1.0.2",
 	"license": "MIT",
 	"repository": {
 		"type": "git",
@@ -34,7 +34,7 @@
 				"gitpulse.dashboard.showOthersContributions": {
 					"type": "boolean",
 					"default": false,
-					"description": "Compare contributions with other contributors"
+					"description": "Compare contributions with other contributors (Currently NOT AVAILABLE on Windows)"
 				}
 			}
 		}

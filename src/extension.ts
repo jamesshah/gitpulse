@@ -15,7 +15,7 @@ async function isGitRepository(): Promise<boolean> {
 
 	try {
 		// Try to execute a simple git command
-		await execAsync("git rev-parse --is-inside-work-tree", {
+		await execAsync("git fetch", {
 			cwd: workspace.uri.fsPath,
 		});
 		return true;

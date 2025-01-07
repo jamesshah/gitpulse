@@ -185,6 +185,12 @@ function script() {
 		if (myChart) {
 			myChart.destroy();
 		}
+
+		const canvas = document.getElementById("commitsChart");
+		const loader = document.getElementById("commitsChart-loader");
+		canvas.style.display = "block";
+		loader.style.display = "none";
+
 		myChart = new Chart(ctx, {
 			type: "bar",
 			data: {
@@ -301,6 +307,13 @@ function script() {
 				pointHoverBorderColor: "rgb(255, 99, 132)",
 			});
 		}
+
+		const canvas = document.getElementById("contributionsByFileTypesChart");
+		const loader = document.getElementById(
+			"contributionsByFileTypesChart-loader"
+		);
+		canvas.style.display = "block";
+		loader.style.display = "none";
 
 		myFileTypeChart = new Chart(ctx, {
 			type: "radar",

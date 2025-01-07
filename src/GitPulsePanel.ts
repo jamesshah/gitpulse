@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import { CommitData, FileTypeStats } from "./models";
+import { platform } from "os";
 
 export class GitPulsePanel {
 	public static currentPanel: GitPulsePanel | undefined;
@@ -47,7 +48,10 @@ export class GitPulsePanel {
 									true
 								);
 
-							if (showOtherContributions) {
+							if (
+								platform() !== "win32" &&
+								showOtherContributions
+							) {
 								response.commits["others"] =
 									await this._getCommits(message.timeframe);
 
@@ -369,10 +373,11 @@ export class GitPulsePanel {
 
             <div class="chart-container">
                 <h1 id="label-header">Total Commits</h1>
-                <canvas id="commitsChart"></canvas>
-
+				<p id="commitsChart-loader">Loading...</p>
+                <canvas id="commitsChart" style="display: none"></canvas>
                 <h1> Contribution % by file types </h1>
-				<canvas id="contributionsByFileTypesChart"></canvas>
+				<p id="contributionsByFileTypesChart-loader">Loading...</p>
+				<canvas id="contributionsByFileTypesChart" style="display: none"></canvas>
 			</div>
 
             <script src="${scriptUri}" nonce="${nonce}"></script>
